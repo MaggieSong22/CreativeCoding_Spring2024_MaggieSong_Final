@@ -1,2 +1,71 @@
+// Game variables
+let playerX, playerY, playerVelocity;
+let platforms = [];
+const gravity = 0.5;
+const platformWidth = random(20,80);
+const platformHeight = 20;
+const playerSize = 30;
+
 function setup() {
-	createCanvas(600,600);
+  createCanvas(400, 600);
+  playerX = width / 2;
+  playerY = height - playerSize - 100;
+  playerVelocity = 0;
+
+  // Generate initial platforms
+  for (let i = 0; i < 10; i++) {
+    platforms.push(new Platform(random(width - platformWidth), i * (height / 10)));
+  }
+}
+
+function draw() {
+  background(220);
+
+  // Draw player
+  fill(0);
+  rect(playerX, playerY, playerSize, playerSize);
+
+  // Draw platforms
+  platforms.forEach(platform => {
+    platform.draw();
+  });
+
+  // Apply gravity
+  playerVelocity += gravity;
+  playerY += playerVelocity;
+
+  // Check for platform collision
+  platforms.forEach(platform => {
+    if (
+      playerY + playerSize >= platform.y &&
+      playerY <= platform.y + platformHeight &&
+      playerX + playerSize >= platform.x &&
+      playerX <= platform.x + platformWidth
+    ) {
+      playerVelocity = 0;
+    }
+  });
+
+  // Check for game over
+  if (playerY + playerSize >= height) {
+    alert('Game Over!');
+    noLoop();
+  }
+}
+
+function mousePressed() {
+  playerVelocity = -12;
+}
+
+// Platform class
+class Platform {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  draw() {
+    fill(100);
+    rect(this.x, this.y, platformWidth, platformHeight);
+  }
+}
