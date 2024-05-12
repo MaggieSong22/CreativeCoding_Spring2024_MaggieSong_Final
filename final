@@ -1,111 +1,137 @@
-let gameStarted = false; // Flag to track game initiation
-let fallingFromPlatform = false; // Flag to track if ball is falling from a platform
+// images variables
+let bg;
+let dd;
+let pf;
+
+// object
+let platforms = [];
+let player;
+let score=0;
+
+// player physics
+let gravity=0.5;
+let initialSpeed=-9;
+
+
 
 function setup() {
-  createCanvas(400, 600);
-  gravity = 0.5; // Increased gravity
-  jumpForce = -12; // Adjust jump force (higher) if needed
-  playerX = 20;
-  playerY = height - 20; // Start at bottom
-  velocityY = 0;
-  platforms = [];
-  score = 0;
+  let gameStatus=select('#restart');
+  gameStatus.mousePressed(gameRestart);
 
-  // Generate initial platforms
-  generateInitialPlatforms();
+  createCanvas(400, 533);
+  background(255);
+  frameRate(35);
+  fill(255,0,0);
+  
+  // new object: platforms and players
+  for(let i=0;i<10;i++){
+    let platform = new Platform (random()*width*3/4,height-75*i-20);
+    platforms.push(platform);
+  }
+
+  player=new Player(platforms[0].x-10,platforms[0].y-100,initialSpeed);
+
+
 }
 
 function draw() {
-  background(240); // Light blue background
+  if(!isGameOver()){
+    background(255);
+    textSize(32);
+    fill(50);
+  text(score, 10, 10, 70, 80);
+      
+    
+    player.display();
+    player.x=mouseX;
+    player.move();
 
-  // Draw platforms
-  fill(51); // Dark gray platforms
-  platforms.forEach(platform => rect(platform.x, platform.y, platform.width, 10));
+    for(let i=0;i<platforms.length;i++){
+      if(detectCollision(player,platforms[i]) && player.speed>=0){
+        player.speed=initialSpeed;
+        score+=1;
+      }
+      if(player.y<height*3/5){
+        platforms[i].y-=initialSpeed/2;
+      }
+      platforms[i].display();
 
-  // Draw player (simple ellipse)
-  fill(0, 153, 255); // Blue player
-  ellipse(playerX, playerY, 20, 20);
-
-  // Update player position based on mouseX and gravity (if game started)
-  if (gameStarted) {
-    playerX = constrain(mouseX, 0, width - 20); // Move player with mouseX
-    playerY += velocityY;
-    velocityY += gravity;
+      
+      if(platforms[i].y>height){
+        platforms.shift();
+        //new
+        let newPlatform = new Platform(random()*width*3/4,height-75*10);
+        platforms.push(newPlatform);
+      }
+      
+    }
+  }else{
+    gameRestart();
   }
 
-  // Check for collisions
-  for (let i = platforms.length - 1; i >= 0; i--) { // Iterate platforms in reverse order
-    const platform = platforms[i];
-    if (playerY + 10 >= platform.y && playerY <= platform.y + 10 &&
-        playerX + 10 >= platform.x && playerX <= platform.x + platform.width) {
-      velocityY = jumpForce;
-      score++;
-      fallingFromPlatform = true; // Set flag when bouncing from a platform
+}
+
+function detectCollision(a,b){
+  return (a.y + 10 >= b.y && a.y <= b.y + 10 &&
+        a.x + 10 >= b.x && a.x <= b.x + b.width);
+}
+function gameRestart(){
+  platforms=[];
+  for(let i=0;i<10;i++){
+    let platform = new Platform (random()*width*3/4,height-75*i-20);
+    platforms.push(platform);
+  }
+
+  player=new Player(platforms[0].x-10,platforms[0].y-100,initialSpeed);
+  score=0;
+}
+function isGameOver(){
+  if(player.y>height){
+    alert("GAME OVER! SCORE: "+score );
+    return true;
+    
+  }
+  else{
+    return false;
+  }
+}
+
+
+
+
+class Player{
+  constructor(x,y,speed){
+    this.x=x;
+    this.y=y;
+    this.speed=speed;
+    this.height=80;
+    this.width=80;
+  }
+  display(){
+    // image(dd,this.x,this.y);
+    ellipse(this.x,this.y,20,20);
+    if(this.x>width){
+      this.x=0;
+    }
+    if(this.x<0){
+      this.x=width;
     }
   }
-
-  // Check for game over or ball bouncing beyond top
-  if (playerY + 10 > height) {
-    if (fallingFromPlatform) {
-      resetGame();
-    }
-    fallingFromPlatform = false; // Reset flag when hitting bottom
-  } else if (playerY < -10) {
-    playerY = height + 10; // Re-enter from bottom
-    velocityY = jumpForce; // Maintain upward velocity when re-entering
-    fallingFromPlatform = false; // Not falling from a platform when re-entering
-    platforms = []; // Clear existing platforms
-    generateNewPlatforms(); // Generate new platforms
+  move(){
+    this.speed+=gravity;
+    this.y+=this.speed;
   }
 }
 
-function generateInitialPlatforms() {
-  const platformHeight = 10;
-  const platformWidth = 60;
-  const spacing = 120; // Reduced distance between platforms
-  const startY = height - 150;
-
-  for (let y = startY; y > 0; y -= spacing) {
-    const platformX = random(width - platformWidth);
-    platforms.push({ x: platformX, y: y, width: platformWidth });
+class Platform{
+  constructor(x,y){
+    this.x=x;
+    this.y=y;
+    this.height=14;
+    this.width=68;
   }
-}
-
-function generateNewPlatforms() {
-  const platformHeight = 10;
-  const platformWidth = 60;
-  const spacing = 120; // Reduced distance between platforms
-  const startY = height - 150;
-
-  for (let y = startY; y > 0; y -= spacing) {
-    const platformX = random(width - platformWidth);
-    platforms.push({ x: platformX, y: y, width: platformWidth });
+  display(){
+    // image(pf,this.x,this.y);
+    rect(this.x,this.y,this.width,this.height);
   }
-}
-
-// Handle mouse click to initiate the game and first jump
-function mouseClicked() {
-  if (!gameStarted) {
-    gameStarted = true;
-    velocityY = jumpForce; // Initial jump on click
-  }
-}
-
-// Handle space key press for jump (usable after starting the game)
-function keyPressed() {
-  if (keyCode === 32 && gameStarted) { // Space bar for jump (only if game started)
-    velocityY = jumpForce;
-  }
-}
-
-function resetGame() {
-  alert("Game Over! Score: " + score);
-  platforms = [];
-  playerX = 20;
-  playerY = height - 20;
-  velocityY = 0;
-  score = 0;
-  gameStarted = false;
-  fallingFromPlatform = false;
-  generateInitialPlatforms();
 }
