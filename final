@@ -1,71 +1,111 @@
-// Game variables
-let playerX, playerY, playerVelocity;
-let platforms = [];
-const gravity = 0.5;
-const platformWidth = random(20,80);
-const platformHeight = 20;
-const playerSize = 30;
+let gameStarted = false; // Flag to track game initiation
+let fallingFromPlatform = false; // Flag to track if ball is falling from a platform
 
 function setup() {
   createCanvas(400, 600);
-  playerX = width / 2;
-  playerY = height - playerSize - 100;
-  playerVelocity = 0;
+  gravity = 0.5; // Increased gravity
+  jumpForce = -12; // Adjust jump force (higher) if needed
+  playerX = 20;
+  playerY = height - 20; // Start at bottom
+  velocityY = 0;
+  platforms = [];
+  score = 0;
 
   // Generate initial platforms
-  for (let i = 0; i < 10; i++) {
-    platforms.push(new Platform(random(width - platformWidth), i * (height / 10)));
-  }
+  generateInitialPlatforms();
 }
 
 function draw() {
-  background(220);
-
-  // Draw player
-  fill(0);
-  rect(playerX, playerY, playerSize, playerSize);
+  background(240); // Light blue background
 
   // Draw platforms
-  platforms.forEach(platform => {
-    platform.draw();
-  });
+  fill(51); // Dark gray platforms
+  platforms.forEach(platform => rect(platform.x, platform.y, platform.width, 10));
 
-  // Apply gravity
-  playerVelocity += gravity;
-  playerY += playerVelocity;
+  // Draw player (simple ellipse)
+  fill(0, 153, 255); // Blue player
+  ellipse(playerX, playerY, 20, 20);
 
-  // Check for platform collision
-  platforms.forEach(platform => {
-    if (
-      playerY + playerSize >= platform.y &&
-      playerY <= platform.y + platformHeight &&
-      playerX + playerSize >= platform.x &&
-      playerX <= platform.x + platformWidth
-    ) {
-      playerVelocity = 0;
+  // Update player position based on mouseX and gravity (if game started)
+  if (gameStarted) {
+    playerX = constrain(mouseX, 0, width - 20); // Move player with mouseX
+    playerY += velocityY;
+    velocityY += gravity;
+  }
+
+  // Check for collisions
+  for (let i = platforms.length - 1; i >= 0; i--) { // Iterate platforms in reverse order
+    const platform = platforms[i];
+    if (playerY + 10 >= platform.y && playerY <= platform.y + 10 &&
+        playerX + 10 >= platform.x && playerX <= platform.x + platform.width) {
+      velocityY = jumpForce;
+      score++;
+      fallingFromPlatform = true; // Set flag when bouncing from a platform
     }
-  });
+  }
 
-  // Check for game over
-  if (playerY + playerSize >= height) {
-    alert('Game Over!');
-    noLoop();
+  // Check for game over or ball bouncing beyond top
+  if (playerY + 10 > height) {
+    if (fallingFromPlatform) {
+      resetGame();
+    }
+    fallingFromPlatform = false; // Reset flag when hitting bottom
+  } else if (playerY < -10) {
+    playerY = height + 10; // Re-enter from bottom
+    velocityY = jumpForce; // Maintain upward velocity when re-entering
+    fallingFromPlatform = false; // Not falling from a platform when re-entering
+    platforms = []; // Clear existing platforms
+    generateNewPlatforms(); // Generate new platforms
   }
 }
 
-function mousePressed() {
-  playerVelocity = -12;
+function generateInitialPlatforms() {
+  const platformHeight = 10;
+  const platformWidth = 60;
+  const spacing = 120; // Reduced distance between platforms
+  const startY = height - 150;
+
+  for (let y = startY; y > 0; y -= spacing) {
+    const platformX = random(width - platformWidth);
+    platforms.push({ x: platformX, y: y, width: platformWidth });
+  }
 }
 
-// Platform class
-class Platform {
-  constructor(x, y) {
-    this.x = x;
-    this.y = y;
-  }
+function generateNewPlatforms() {
+  const platformHeight = 10;
+  const platformWidth = 60;
+  const spacing = 120; // Reduced distance between platforms
+  const startY = height - 150;
 
-  draw() {
-    fill(100);
-    rect(this.x, this.y, platformWidth, platformHeight);
+  for (let y = startY; y > 0; y -= spacing) {
+    const platformX = random(width - platformWidth);
+    platforms.push({ x: platformX, y: y, width: platformWidth });
   }
+}
+
+// Handle mouse click to initiate the game and first jump
+function mouseClicked() {
+  if (!gameStarted) {
+    gameStarted = true;
+    velocityY = jumpForce; // Initial jump on click
+  }
+}
+
+// Handle space key press for jump (usable after starting the game)
+function keyPressed() {
+  if (keyCode === 32 && gameStarted) { // Space bar for jump (only if game started)
+    velocityY = jumpForce;
+  }
+}
+
+function resetGame() {
+  alert("Game Over! Score: " + score);
+  platforms = [];
+  playerX = 20;
+  playerY = height - 20;
+  velocityY = 0;
+  score = 0;
+  gameStarted = false;
+  fallingFromPlatform = false;
+  generateInitialPlatforms();
 }
